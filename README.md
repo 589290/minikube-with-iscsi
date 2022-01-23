@@ -25,3 +25,9 @@ Without the patched VM, for comparison, output of the same commands:
 ...and of course, the goal... a working Longhorn deployment utilizing the patched VM!  
 
 ![](./img/longhorn.jpg)
+
+As a comparison, the patched VM is about 2.5 megabytes larger in size:
+
+![](./img/iso-size.jpg)
+
+
