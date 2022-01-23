@@ -13,3 +13,15 @@ minikube start \
   --container-runtime=docker \
   --kubernetes-version=1.19.16
 ```
+
+With the patch, you can see the iscsi kernel mod and associated iscsi system apps in `minikube` below:  
+
+![](./img/minikube-iscsi.jpg)
+
+Without the patch, the output of the same commands with the vanilla `minikube` VM provided in its distribution:
+
+![](./img/minikube.jpg)
+
+...and of course, the goal... a working Longhorn deployment utilizing the patched VM!  
+
+![](./img/longhorn.jpg)
