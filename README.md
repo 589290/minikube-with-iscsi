@@ -2,9 +2,9 @@
 
 This is the `minikube` VM compiled with an additional patch that enables iscsi support.  
   
-In order to deploy [Longhorn](https://longhorn.io/) on a minikube cluster, the iscsi initiator must be present in the host (minikube VM) OS. Unfortunately, `minikube` currently does not have the iscsi kernel module and associated system apps present in its distribution. Fortunately, anyone can [compile the `minikube` VM.iso on their own](https://minikube.sigs.k8s.io/docs/contrib/building/iso/). Therefore, the purpose of this patch and custom VM.iso build is to facilitate the usage of Longhorn on a local `minikube` cluster.  
+In order to deploy [Longhorn](https://longhorn.io/) on a minikube cluster, the iscsi initiator must be present in the host (minikube VM) OS. Unfortunately, `minikube` currently does not have the iscsi kernel module and associated system apps present in its distribution. Fortunately, anyone can [compile the `minikube` VM.iso on their own](https://minikube.sigs.k8s.io/docs/contrib/building/iso/). Therefore, the purpose of [this patch](iscsi.patch) and [custom VM.iso build](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) is to facilitate the usage of Longhorn on a local `minikube` cluster.  
   
-To launch a `minikube` cluster with iscsi support, download [minikube-iscsi.iso](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) and then start `minikube` with a command similar to below (works with any driver, kubernetes version, or runtime) specifying the usage of the local .iso file:  
+To launch a `minikube` cluster with iscsi support, download [minikube-iscsi.iso](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) and then start `minikube` with a command similar to below (works with any driver, kubernetes version, or runtime) specifying the usage of the custom .iso file:  
 
 ```
 minikube start \
@@ -22,7 +22,7 @@ Without the patched VM, for comparison, output of the same commands:
 
 ![](./img/minikube.jpg)
 
-...and of course, the goal... a working Longhorn deployment utilizing the patched VM!  
+...and of course, the goal... a working Longhorn deployment on `minikube` utilizing the patched VM! ([deploying Longhorn](https://longhorn.io/docs/1.2.3/deploy/install))
 
 ![](./img/longhorn.jpg)
 
@@ -30,7 +30,7 @@ As a comparison, the patched VM is about 2.5 megabytes larger in size:
 
 ![](./img/iso-size.jpg)
 
-If you would like to perform the custom build on your own, you should have already [followed these instructions setting up an environment](https://minikube.sigs.k8s.io/docs/contrib/building/iso/) to compile the new custom VM iso. To bebin, checkout the source:
+If you would like to perform the custom build on your own, you should have already [followed these instructions setting up an environment](https://minikube.sigs.k8s.io/docs/contrib/building/iso/) to compile the new custom VM iso. To begin, checkout the `minikube` source:
 
 ```
 git clone https://github.com/kubernetes/minikube.git
