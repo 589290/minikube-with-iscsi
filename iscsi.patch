@@ -1,0 +1,212 @@
+diff --git a/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig b/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
+index bb05558f9..81dda7b14 100644
+--- a/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
++++ b/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
+@@ -320,13 +320,21 @@ CONFIG_VMWARE_VMCI=m
+ CONFIG_BLK_DEV_SD=y
+ CONFIG_BLK_DEV_SR=y
+ CONFIG_CHR_DEV_SG=y
++CONFIG_SCSI_MOD=y
++CONFIG_SCSI=y
++CONFIG_SCSI_DMA=y
++CONFIG_SCSI_PROC_FS=y
+ CONFIG_SCSI_CONSTANTS=y
+ CONFIG_SCSI_SPI_ATTRS=y
+ CONFIG_SCSI_FC_ATTRS=m
+ CONFIG_SCSI_ISCSI_ATTRS=m
++CONFIG_SCSI_SAS_ATTRS=m
+ CONFIG_SCSI_SAS_LIBSAS=m
+ CONFIG_SCSI_SAS_ATA=y
++CONFIG_SCSI_SAS_HOST_SMP=y
+ CONFIG_SCSI_SRP_ATTRS=m
++CONFIG_SCSI_LOWLEVEL=y
++CONFIG_ISCSI_TCP=m
+ CONFIG_MEGARAID_NEWGEN=y
+ CONFIG_MEGARAID_MM=m
+ CONFIG_VMWARE_PVSCSI=y
+diff --git a/deploy/iso/minikube-iso/configs/minikube_defconfig b/deploy/iso/minikube-iso/configs/minikube_defconfig
+index 44e17f5b2..03b317eac 100644
+--- a/deploy/iso/minikube-iso/configs/minikube_defconfig
++++ b/deploy/iso/minikube-iso/configs/minikube_defconfig
+@@ -79,6 +79,7 @@ BR2_PACKAGE_LZ4_PROGS=y
+ BR2_PACKAGE_CA_CERTIFICATES=y
+ BR2_PACKAGE_LIBOPENSSL_BIN=y
+ BR2_PACKAGE_LIBCURL_CURL=y
++BR2_PACKAGE_LIBISCSI=y
+ BR2_PACKAGE_BRIDGE_UTILS=y
+ BR2_PACKAGE_CONNTRACK_TOOLS=y
+ BR2_PACKAGE_EBTABLES=y
+@@ -108,3 +109,5 @@ BR2_TARGET_SYSLINUX=y
+ BR2_PACKAGE_HOST_E2TOOLS=y
+ BR2_PACKAGE_HOST_PYTHON=y
+ BR2_PACKAGE_LIBFUSE=y
++BR2_PACKAGE_OPEN_ISNS=y
++BR2_PACKAGE_OPEN_ISCSI=y
+diff --git a/deploy/iso/minikube-iso/package/Config.in b/deploy/iso/minikube-iso/package/Config.in
+index 954fbac17..10ff91e58 100644
+--- a/deploy/iso/minikube-iso/package/Config.in
++++ b/deploy/iso/minikube-iso/package/Config.in
+@@ -15,4 +15,6 @@ menu "System tools"
+     source "$BR2_EXTERNAL_MINIKUBE_PATH/package/buildkit-bin/Config.in"
+     source "$BR2_EXTERNAL_MINIKUBE_PATH/package/falco-module/Config.in"
+     source "$BR2_EXTERNAL_MINIKUBE_PATH/package/scheduled-stop/Config.in"
++    source "$BR2_EXTERNAL_MINIKUBE_PATH/package/open-isns/Config.in"
++    source "$BR2_EXTERNAL_MINIKUBE_PATH/package/open-iscsi/Config.in"
+ endmenu
+diff --git a/deploy/iso/minikube-iso/package/automount/minikube-automount b/deploy/iso/minikube-iso/package/automount/minikube-automount
+index bfe8f3a87..5ac9ba62a 100755
+--- a/deploy/iso/minikube-iso/package/automount/minikube-automount
++++ b/deploy/iso/minikube-iso/package/automount/minikube-automount
+@@ -167,6 +167,18 @@ if [ -n "$BOOT2DOCKER_DATA" ]; then
+     mkdir /var/lib/minishift
+     mount --bind /mnt/$PARTNAME/var/lib/minishift /var/lib/minishift
+ 
++    mkdir -p /mnt/$PARTNAME/var/lib/longhorn
++    mkdir /var/lib/longhorn
++    mount --bind /mnt/$PARTNAME/var/lib/longhorn /var/lib/longhorn
++
++    mkdir -p /mnt/$PARTNAME/var/lib/iscsi/send_targets
++    mkdir -p /var/lib/iscsi/send_targets
++    mount --bind /mnt/$PARTNAME/var/lib/iscsi/send_targets /var/lib/iscsi/send_targets
++
++    mkdir -p /mnt/$PARTNAME/var/lib/iscsi/nodes
++    mkdir -p /var/lib/iscsi/nodes
++    mount --bind /mnt/$PARTNAME/var/lib/iscsi/nodes /var/lib/iscsi/nodes
++
+     ## make an env file for other services to discover this PARTNAME easier
+     mkdir -p /var/run/minikube
+     echo "PERSISTENT_DIR=\"/mnt/$PARTNAME\"" > /var/run/minikube/env
+diff --git a/deploy/iso/minikube-iso/package/open-iscsi/Config.in b/deploy/iso/minikube-iso/package/open-iscsi/Config.in
+new file mode 100644
+index 000000000..04a5572db
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-iscsi/Config.in
+@@ -0,0 +1,6 @@
++config BR2_PACKAGE_OPEN_ISCSI
++	bool "open-iscsi"
++	default y
++	depends on BR2_PACKAGE_KMOD
++	depends on BR2_PACKAGE_OPEN_ISNS
++	select BR2_PACKAGE_BERKELEYDB
+diff --git a/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.hash b/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.hash
+new file mode 100644
+index 000000000..9b16fb6dc
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.hash
+@@ -0,0 +1 @@
++sha256 d8a06c1ea86d2a312d598f52c151b210a34d82445a6f522f7c2bd6581b3a99af  2.1.5.tar.gz
+diff --git a/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.mk b/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.mk
+new file mode 100644
+index 000000000..b499d5411
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-iscsi/open-iscsi.mk
+@@ -0,0 +1,66 @@
++################################################################################
++#
++# open-iscsi
++#
++################################################################################
++
++OPEN_ISCSI_VERSION = 2.1.5
++OPEN_ISCSI_SITE = https://github.com/open-iscsi/open-iscsi/archive/refs/tags
++OPEN_ISCSI_SOURCE = $(OPEN_ISCSI_VERSION).tar.gz
++OPEN_ISCSI_DEPENDENCIES += open-isns
++
++OPEN_ISCSI_CFLAGS = "-fPIC -I$(@D)/include -I$(@D)/usr -I$(@D)/libopeniscsiusr -I$(TARGET_DIR)/usr/include/ -D_GNU_SOURCE -L$(TARGET_DIR)/usr/lib64 -lkmod -lsystemd"
++
++define OPEN_ISCSI_BUILD_CMDS
++	$(MAKE) -C $(@D) clean
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/libopeniscsiusr install
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/utils/sysdeps 
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/utils/fwparam_ibft
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/usr
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/utils
++	autoreconf $(@D)/iscsiuio --install
++	cd $(@D)/iscsiuio && ./configure	
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISCSI_CFLAGS) -C $(@D)/iscsiuio
++	$(MAKE) -C $(@D) CFLAGS=$(OPEN_ISCSI_CFLAGS) install
++endef
++
++define OPEN_ISCSI_INSTALL_TARGET_CMDS
++        $(INSTALL) -Dm755 $(@D)/usr/iscsid $(TARGET_DIR)/usr/sbin/iscsid
++        $(INSTALL) -Dm755 $(@D)/usr/iscsiadm $(TARGET_DIR)/usr/sbin/iscsiadm
++        $(INSTALL) -Dm755 $(@D)/usr/iscsistart $(TARGET_DIR)/usr/sbin/iscsistart
++        $(INSTALL) -Dm755 $(@D)/utils/iscsi-iname $(TARGET_DIR)/usr/sbin/iscsi-iname
++        $(INSTALL) -Dm755 $(@D)/utils/iscsi-gen-initiatorname $(TARGET_DIR)/usr/sbin/iscsi-gen-initiatorname
++        $(INSTALL) -Dm755 $(@D)/iscsiuio/src/unix/iscsiuio  $(TARGET_DIR)/usr/sbin/iscsiuio
++
++        $(INSTALL) -Dm755 $(@D)/libopeniscsiusr/libopeniscsiusr.so.0.2.0 $(TARGET_DIR)/usr/lib64/libopeniscsiusr.so.0.2.0
++	ln -s $(TARGET_DIR)/usr/lib64/libopeniscsiusr.so.0.2.0 $(TARGET_DIR)/usr/lib64/libopeniscsiusr.so
++
++	$(INSTALL) -d $(TARGET_DIR)/etc/iscsi
++	$(INSTALL) -Dm755 $(@D)/etc/iscsid.conf $(TARGET_DIR)/etc/iscsi/iscsid.conf
++
++	echo "InitiatorName=`$(TARGET_DIR)/usr/sbin/iscsi-iname`" > $(TARGET_DIR)/etc/iscsi/initiatorname.iscsi 
++
++endef 
++
++define OPEN_ISCSI_INSTALL_INIT_SYSTEMD
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsiuio.socket \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsiuio.socket
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsiuio.service \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsiuio.service
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsi.service \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsi.service
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsid.service \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsid.service
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsid.socket \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsid.socket
++	$(INSTALL) -Dm644 \
++		$(@D)/etc/systemd/iscsi-init.service \
++		$(TARGET_DIR)/usr/lib/systemd/system/iscsi-init.service
++endef
++
++$(eval $(generic-package))
+diff --git a/deploy/iso/minikube-iso/package/open-isns/Config.in b/deploy/iso/minikube-iso/package/open-isns/Config.in
+new file mode 100644
+index 000000000..72e210b2f
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-isns/Config.in
+@@ -0,0 +1,3 @@
++config BR2_PACKAGE_OPEN_ISNS
++	bool "open-isns"
++	default y
+diff --git a/deploy/iso/minikube-iso/package/open-isns/open-isns.hash b/deploy/iso/minikube-iso/package/open-isns/open-isns.hash
+new file mode 100644
+index 000000000..dff8867e1
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-isns/open-isns.hash
+@@ -0,0 +1 @@
++sha256 f672ec86b6c9e984843a7a28d76f07e26393499c486f86034b8b18caa8deb556 v0.101.tar.gz
+diff --git a/deploy/iso/minikube-iso/package/open-isns/open-isns.mk b/deploy/iso/minikube-iso/package/open-isns/open-isns.mk
+new file mode 100644
+index 000000000..01a8d52fa
+--- /dev/null
++++ b/deploy/iso/minikube-iso/package/open-isns/open-isns.mk
+@@ -0,0 +1,21 @@
++################################################################################
++#
++# open-isns
++#
++################################################################################
++
++OPEN_ISNS_VERSION = v0.101
++OPEN_ISNS_SITE = https://github.com/open-iscsi/open-isns/archive/refs/tags
++OPEN_ISNS_SOURCE = $(OPEN_ISNS_VERSION).tar.gz
++
++OPEN_ISNS_CFLAGS = "-I$(@D)/include -I$(@D) -D_GNU_SOURCE"
++
++define OPEN_ISNS_BUILD_CMDS
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) CFLAGS=$(OPEN_ISNS_CFLAGS) -C $(@D) 
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D) install DESTDIR=$(TARGET_DIR)
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D) install_hdrs DESTDIR=$(TARGET_DIR)
++	$(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D) install_lib DESTDIR=$(TARGET_DIR)
++endef
++
++#OPEN_ISNS_TARGET_OPTS = DESTDIR=$(TARGET_DIR) install install_hdrs install_lib
++$(eval $(autotools-package))
