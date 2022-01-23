@@ -1,6 +1,6 @@
 # minikube-with-iscsi
 
-This is the `minikube` VM compiled with an additional patch that enables iscsi support.  
+This is the `minikube` _version 1.25.1_ virtual machine compiled with an additional patch that enables iscsi support.  
   
 In order to deploy [Longhorn](https://longhorn.io/) on a minikube cluster, the iscsi initiator must be present in the host (minikube VM) OS. Unfortunately, `minikube` currently does not have the iscsi kernel module and associated system apps present in its distribution. Fortunately, anyone can [compile the `minikube` VM.iso on their own](https://minikube.sigs.k8s.io/docs/contrib/building/iso/). Therefore, the purpose of [this patch](iscsi.patch) and [custom VM.iso build](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) is to facilitate the usage of Longhorn on a local `minikube` cluster.  
   
