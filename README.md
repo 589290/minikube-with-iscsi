@@ -2,9 +2,9 @@
 
 This is the `minikube` VM compiled with an additional patch that enables iscsi support.  
   
-In order to deploy [Longhorn](https://longhorn.io/) on minikube, the iscsi initiator must be present in the host (minikube VM) OS. Unfortunately, `minikube` currently does not have the iscsi kernel modules and associated system apps installed in the current distribution. Fortunately, anyone can compile the VM.iso on their own [as is documented here](https://minikube.sigs.k8s.io/docs/contrib/building/iso/). Hence the need for this patch and custom VM build to facilitate the usage of Longhorn on a local cluster.  
+In order to deploy [Longhorn](https://longhorn.io/) on minikube, the iscsi initiator must be present in the host (minikube VM) OS. Unfortunately, `minikube` currently does not have the iscsi kernel module and associated system apps present in its distribution. Fortunately, anyone can [compile the `minikube` VM.iso on their own](https://minikube.sigs.k8s.io/docs/contrib/building/iso/). Therefore, the purpose of this patch and custom VM.iso build is to facilitate the usage of Longhorn on a local `minikube` cluster.  
   
-To launch a `minikube` cluster with iscsi support, download [minikube-iscsi.iso](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) locally and then start `minikube` with a similar command specifying the usage of the local .iso file:  
+To launch a `minikube` cluster with iscsi support, download [minikube-iscsi.iso](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) and then start `minikube` with a command similar to below (works with any driver, kubernetes version, or runtime) specifying the usage of the local .iso file:  
 
 ```
 minikube start \
@@ -14,11 +14,11 @@ minikube start \
   --kubernetes-version=1.19.16
 ```
 
-With the patch, you can see the iscsi kernel mod and associated iscsi system apps in `minikube` below:  
+SSH'ing into the patched VM, the iscsi kernel mod and associated iscsi system apps are present:  
 
 ![](./img/minikube-iscsi.jpg)
 
-Without the patch, the output of the same commands with the vanilla `minikube` VM provided in its distribution:
+Without the patched VM, for comparison, output of the same commands:
 
 ![](./img/minikube.jpg)
 
