@@ -7,5 +7,9 @@ In order to deploy [Longhorn](https://longhorn.io/) on minikube, the iscsi initi
 To deploy `minikube` with this custom .iso, [download it](https://github.com/589290/minikube-with-iscsi/raw/main/minikube-iscsi.iso) locally and then launch with a similar command:  
 
 ```
-minikube start --iso-url=file://$(pwd)/minikube-iscsi.iso --driver=hyperkit --container-runtime=docker
+minikube start \
+  --iso-url=file://$(pwd)/minikube-iscsi.iso \
+  --driver=hyperkit \
+  --container-runtime=docker \
+  --kubernetes-version=1.19.16
 ```
